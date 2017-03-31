@@ -167,14 +167,14 @@ class D500px extends MediaTypeBase {
           return FALSE;
 
         case 'thumbnail_local':
-          if (isset($d500px->images[1]->url)) {
+          /*if (isset($d500px->images[1]->url)) {
             $local_uri = $this->configFactory->get('media_entity_d500px.settings')->get('local_images') . '/' . $matches['id'] . '.' . $d500px->images[1]->format;
 
             if (!file_exists($local_uri)) {
-              //file_prepare_directory($local_uri, FILE_CREATE_DIRECTORY | FILE_MODIFY_PERMISSIONS);
+              file_prepare_directory($this->configFactory->get('media_entity_d500px.settings')->get('local_images'), FILE_CREATE_DIRECTORY | FILE_MODIFY_PERMISSIONS);
 
-              var_dump($d500px->images[1]->url);
-              var_dump($local_uri);
+              //var_dump($d500px->images[1]->url);
+              //var_dump($local_uri);
 
               $image = file_get_contents($d500px->images[1]->url);
 
@@ -185,11 +185,26 @@ class D500px extends MediaTypeBase {
               //return $local_uri;
             }
           }
+          return FALSE;*/
+          $local_uri = $this->getField($media, 'thumbnail_local_uri');
+
+          if ($local_uri) {
+            if (file_exists($local_uri)) {
+              return $local_uri;
+            }
+            else {
+              $image_url = $this->getField($media, 'thumbnail');
+              $image_data = file_get_contents($image_url);
+              if ($image_data) {
+                return file_unmanaged_save_data($image_data, $local_uri, FILE_EXISTS_REPLACE);
+              }
+            }
+          }
           return FALSE;
 
         case 'thumbnail_local_uri':
-          if (isset($d500px->images[0]->url)) {
-            return $this->configFactory->get('media_entity_d500px.settings')->get('local_images') . '/' . $matches['id'] . '.' . $d500px->images[0]->format;
+          if (isset($d500px->images[1]->url)) {
+            return $this->configFactory->get('media_entity_d500px.settings')->get('local_images') . '/' . $matches['id'] . '.' . $d500px->images[1]->format;
           }
           return FALSE;
       }
@@ -313,13 +328,92 @@ class D500px extends MediaTypeBase {
   /**
    * {@inheritdoc}
    */
-  public function thumbnail(MediaInterface $media) {
+  /*public function thumbnail(MediaInterface $media) {
     if ($local_image = $this->getField($media, 'thumbnail_local')) {
       return $local_image;
     }
 
     return $this->getDefaultThumbnail();
+  }*/
+
+  /**
+   * Computes the destination URI for a tweet image.
+   *
+   * @param mixed $id
+   *   The tweet ID.
+   * @param string|null $media_url
+   *   The URL of the media (i.e., photo, video, etc.) associated with the
+   *   tweet.
+   *
+   * @return string
+   *   The desired local URI.
+   */
+  protected function getLocalImageUri($id, $media_url = 'jpeg') {
+    $directory = $this->configFactory
+      ->get('media_entity_500px.settings')
+      ->get('local_images');
+
+    // Ensure that the destination directory is writable. If not, log a warning
+    // and return the default thumbnail.
+    $ready = file_prepare_directory($directory, FILE_CREATE_DIRECTORY | FILE_MODIFY_PERMISSIONS);
+    if (!$ready) {
+      $this->logger->warning('Could not prepare thumbnail destination directory @dir', [
+        '@dir' => $directory,
+      ]);
+      return $this->getDefaultThumbnail();
+    }
+
+    $local_uri = $directory . '/' . $id . '.';
+    if ($media_url) {
+      $local_uri .= pathinfo($media_url, PATHINFO_EXTENSION);
+    }
+    else {
+      // If there is no media associated with the pic, we will generate an
+      // SVG thumbnail.
+      $local_uri .= 'svg';
+    }
+
+    return $local_uri;
   }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function thumbnail(MediaInterface $media) {
+    // If there's already a local image, use it.
+    if ($local_image = $this->getField($media, 'thumbnail_local')) {
+      return $local_image;
+    }
+
+    return $this->getDefaultThumbnail();
+
+    // If thumbnail generation is disabled, use the default thumbnail.
+    /*if (empty($this->configuration['generate_thumbnails'])) {
+      return $this->getDefaultThumbnail();
+    }
+
+    // We might need to generate a thumbnail...
+    $id = $this->getField($media, 'id');
+    $thumbnail_uri = $this->getLocalImageUri($id);
+
+    // ...unless we already have, in which case, use it.
+    if (file_exists($thumbnail_uri)) {
+      return $thumbnail_uri;
+    }
+
+    // Render the thumbnail SVG using the theme system.
+    $thumbnail = [
+      '#theme' => 'media_entity_twitter_tweet_thumbnail',
+      '#content' => $this->getField($media, 'content'),
+      '#author' => $this->getField($media, 'user'),
+      '#avatar' => $this->getField($media, 'profile_image_url_https'),
+    ];
+    $svg = $this->renderer->renderRoot($thumbnail);
+
+    return file_unmanaged_save_data($svg, $thumbnail_uri, FILE_EXISTS_ERROR) ?: $this->getDefaultThumbnail();*/
+  }
+
+
 
   /**
    * {@inheritdoc}
