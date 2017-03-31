@@ -1,5 +1,5 @@
 {
-  "name": "drupal/media_entity_d500px",
+  "name": "vbouchet31/media_entity_d500px",
   "description": "Integrate 500px with Media entities.",
   "type": "drupal-module"
 }
