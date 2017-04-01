@@ -16,17 +16,3 @@ media_entity.bundle.type.d500px:
     use_500px_api:
       type: boolean
       label: 'Whether to use 500px api or not'
-    client_id:
-      type: string
-      label: 'Field with client id'
-
-#field.formatter.settings.d500px_embed:
-#  type: mapping
-#  label: 'Image field display format settings'
-#  mapping:
-#    width:
-#      type: integer
-#      label: 'Width'
-#    height:
-#      type: integer
-#      label: 'Height'
