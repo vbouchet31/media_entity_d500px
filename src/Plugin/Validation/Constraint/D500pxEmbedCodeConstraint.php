@@ -20,6 +20,6 @@ class D500pxEmbedCodeConstraint extends Constraint {
    *
    * @var string
    */
-  public $message = 'Not valid 500px URL/Embed code.';
+  public $message = 'Not valid 500px embed code.';
 
 }
