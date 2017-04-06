@@ -294,7 +294,6 @@ class D500px extends MediaTypeBase {
    * @throws \Drupal\media_entity\MediaTypeException
    */
   protected function fetchD500px($id) {
-    // @TODO: Use dependency injection instead.
     $d500pxintegration = \Drupal::service('d500px.d500pxintegration');
     $result = $d500pxintegration->requestD500px('photos/' . $id, ['image_size' => [100, 200]]);
 
