@@ -127,7 +127,6 @@ class D500px extends MediaTypeBase {
 
     // If we have auth settings return the other fields.
     if ($this->configuration['use_500px_api'] && $d500px = $this->fetchD500px($matches['id'])) {
-      //echo '<pre>' . print_r($d500px, 1) . '</pre>';die;
 
       switch ($name) {
         case 'name':
