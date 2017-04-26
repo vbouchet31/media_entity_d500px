@@ -71,7 +71,7 @@ class D500px extends MediaTypeBase {
    * @var array
    */
   public static $validationRegexp = array(
-    '@(?P<shortcode><div class=\'pixels-photo\'>\s*<p>\s*<img src=\'https://drscdn.500px.org/photo/(?P<id>[0-9]+)/.*/[\w]+\' alt=\'(.*)\'>\s*</p>\s*<a href=\'https://500px.com/photo/[0-9]+/[\w-]+\' alt=\'(.*)\'></a>\s*</div><script type=\'text/javascript\' src=\'https://500px.com/embed.js\'></script>)@i' => 'shortcode',
+    '@(?P<shortcode><div class=\'pixels-photo\'>\s*<p>\s*<img src=\'(?<thumbnail>https://drscdn.500px.org/photo/(?P<id>[0-9]+)/.*/[\w]+)\' alt=\'(.*)\'>\s*</p>\s*<a href=\'https://500px.com/photo/[0-9]+/[\w-]+\' alt=\'(.*)\'></a>\s*</div><script type=\'text/javascript\' src=\'https://500px.com/embed.js\'></script>)@i' => 'shortcode',
   );
 
   /**
@@ -125,6 +125,42 @@ class D500px extends MediaTypeBase {
       return $matches['id'];
     }
 
+    switch ($name) {
+      case 'thumbnail':
+      if (isset($matches['thumbnail'])) {
+        return $matches['thumbnail'];
+      }
+      return FALSE;
+
+      case 'thumbnail_local':
+        $directory = $this->configFactory->get('media_entity_d500px.settings')->get('local_images');
+        if (!file_exists($directory)) {
+          file_prepare_directory($directory, FILE_CREATE_DIRECTORY | FILE_MODIFY_PERMISSIONS);
+        }
+
+        $local_uri = $this->getField($media, 'thumbnail_local_uri');
+        if ($local_uri) {
+          if (file_exists($local_uri)) {
+            return $local_uri;
+          }
+          else {
+            $image_url = $this->getField($media, 'thumbnail');
+            $image_data = file_get_contents($image_url);
+            if ($image_data) {
+              return file_unmanaged_save_data($image_data, $local_uri, FILE_EXISTS_REPLACE);
+            }
+          }
+        }
+        return FALSE;
+
+      case 'thumbnail_local_uri':
+        if (isset($matches['thumbnail'])) {
+          $file_info = pathinfo($matches['thumbnail']);
+          return $this->configFactory->get('media_entity_d500px.settings')->get('local_images') . '/' . $file_info['filename'] . '.' . 'jpg';
+        }
+        return FALSE;
+    }
+
     // If we have auth settings return the other fields.
     if ($this->configuration['use_500px_api'] && $d500px = $this->fetchD500px($matches['id'])) {
 
@@ -156,39 +192,6 @@ class D500px extends MediaTypeBase {
         case 'votes':
           if (isset($d500px->votes_count)) {
             return $d500px->votes_count;
-          }
-          return FALSE;
-
-        case 'thumbnail':
-          if (isset($d500px->image_url[1])) {
-            return $d500px->image_url[1];
-          }
-          return FALSE;
-
-        case 'thumbnail_local':
-           $directory = $this->configFactory->get('media_entity_d500px.settings')->get('local_images');
-          if (!file_exists($directory)) {
-            file_prepare_directory($directory, FILE_CREATE_DIRECTORY | FILE_MODIFY_PERMISSIONS);
-          }
-
-          $local_uri = $this->getField($media, 'thumbnail_local_uri');
-          if ($local_uri) {
-            if (file_exists($local_uri)) {
-              return $local_uri;
-            }
-            else {
-              $image_url = $this->getField($media, 'thumbnail');
-              $image_data = file_get_contents($image_url);
-              if ($image_data) {
-                return file_unmanaged_save_data($image_data, $local_uri, FILE_EXISTS_REPLACE);
-              }
-            }
-          }
-          return FALSE;
-
-        case 'thumbnail_local_uri':
-          if (isset($d500px->images[1]->url)) {
-            return $this->configFactory->get('media_entity_d500px.settings')->get('local_images') . '/' . $matches['id'] . '.' . $d500px->images[1]->format;
           }
           return FALSE;
       }
